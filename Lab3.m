@@ -84,8 +84,10 @@ hold off
 
 %% Task 3.5
 load svedala94.mat
-y = svedala94(720:750);
-y = y - mean(y);
+%y = svedala94(600:850);
+y = svedala94;
+%y = y - mean(y);
+y = y-y(1);
 t = (1:length(y))';
 U = [sin(2*pi*t/6) cos(2*pi*t/6)];
 Z = iddata(y,U);
@@ -105,18 +107,21 @@ plot(asdf)
 U = [sin(2*pi*t/6) cos(2*pi*t/6) ones(size(t))];
 Z = iddata(y,U);
 m0 = [thx.A(2:end) thx.B 0 thx.C(2:end)];
+m0 = cell2mat(m0);
 Re = diag([0 0 0 0 0 1 0 0 0 0]);
 model = [3 [1 1 1] 4 0 [0 0 0] [1 1 1]];
 [thr,yhat] = rpem(Z,model,'kf',Re,m0);
-
+plot(thr)
 %%
-m = thr(:,0);
+m = thr(:,6);
 a = thr(end,4);
 b = thr(end,5);
 y_mean = m + a*U(:,1)+b*U(:,2);
 y_mean = [0;y_mean(1:end-1)];
-
-
+plot(y)
+hold on
+plot(y_mean)
+hold off
 
 
 
