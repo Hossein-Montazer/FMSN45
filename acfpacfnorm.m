@@ -10,6 +10,6 @@ pacf(u,lag,conf_int,1);
 title('Partial auto-correlation function'), xlabel('lag')
 subplot(143)
 normplot(u)
-
+%plotNTdist(u)
 end
 
