@@ -9,7 +9,7 @@ na = 2;
 nb = 0;
 nk = 0;
 model = [na]; %[na,nb,nk]
-lambda = 0.99;
+lambda = 0.95;
 [Aest,yhat,covAest,yprev]= rarx(tar2_data,model,'ff',lambda);
 subplot(313)
 plot(Aest)
@@ -25,14 +25,36 @@ figure(2)
 plot(lambda_line,ls2)
 
 
-
-
-
-
-
-
-
-
+%% Task 3.3
+close all
+b = 20;
+sigma2_e = 1;
+sigma2_w = 4;
+%Kör Lab3Prep Markov, ger x, vilket är u
+%skapa x via e
+%skapa brus v
+e_t = 1*randn(500,1);
+v_t = 2*randn(500,1);
+x = zeros(500,1);
+x(1) = e_t(1);
+for i=2:length(x)
+    x(i) = x(i-1)+e_t(i);
+end
+y = zeros(500,1);
+for i=1:length(y)
+    y(i) = x(i)+b*u(i)+v_t(i);
+end
+Re = [sigma2_e 0;0 0];
+Rw = sigma2_w;
+A = [1 0;0 1];
+C = [1 u];
+%init = ...
+B = 0;
+z = kalmanTSA(A,Re,Rw,u,y);
+plot(z')
+hold on
+plot(x)
+%yt = 
 
 
 
@@ -116,12 +138,12 @@ plot(thr)
 m = thr(:,6);
 a = thr(end,4);
 b = thr(end,5);
-y_mean = m + a*U(:,1)+b*U(:,2);
+y_mean = m + a.*U(:,1)+b.*U(:,2);
 y_mean = [0;y_mean(1:end-1)];
 plot(y)
 hold on
 plot(y_mean)
-hold off
+plot(m)
 
 
 
