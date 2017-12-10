@@ -31,7 +31,7 @@ whitenessTest(resid_y.y) %3/5 great
 jbtest(resid_y.y) %not normal, instead t-distr
 
 %% Prediction
-k = 5; %steps to predict
+k = 4; %steps to predict, choose 3 and use var(resid_gc)
 [Fk_y,Gk_y] = diophantine(model_y.c,model_y.a,k);
 yhat_gc = filter(Gk_y,model_y.c,y);
 samp_remove = max(length(Gk_y),length(C));
@@ -42,6 +42,42 @@ plot(y(samp_remove:end),'b')
 
 %% Check residual of prediction
 resid_gc = y(samp_remove:end) - yhat_gc;
+var_gc = var(resid_gc);
 acfpacfnorm(resid_gc,lag,conf_int)
+
+%% Choose external known input
+
+load tvxo94.mat
+load ptvxo94.mat
+load tid94.mat
+%plot(tvxo94)
+%figure(2)
+%plot(ptvxo94)
+
+vxo = tvxo94(2161:3841); %model set
+%vxo_all = tvxo(2161:8881); %whole set
+plot(vxo)
+
+%% prewhitening u
+u = vxo;
+lag = 50;
+conf_int = 0.05;
+%acfpacfnorm(u,lag,conf_int)
+A_u = [1 zeros(1,9)];
+C_u = [1 zeros(1,9)];
+u_data = iddata(u);
+u_poly = idpoly(A_u,[],C_u);
+u_poly.Structure.a.Free = [1 1 1 zeros(1,7)];
+u_poly.Structure.c.Free = [1 0 0 1 zeros(1,5) 1];
+model_u = pem(u_data,u_poly);
+present(model_u)
+u_resid = resid(u_data,model_u);
+acfpacfnorm(u_resid.y,lag,conf_int)
+
+
+
+
+
+
 
 
