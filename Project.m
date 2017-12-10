@@ -55,28 +55,50 @@ load tid94.mat
 %plot(ptvxo94)
 
 vxo = tvxo94(2161:3841); %model set
-%vxo_all = tvxo(2161:8881); %whole set
+%vxo_all = tvxo94(2161:8760); %whole set, actually to 8881 (next year)
 plot(vxo)
-
-%% prewhitening u
-u = vxo;
+%vxo = vxo.^(1/2);
+%plot(vxo_all)
+%% looking at u
+u = vxo - mean(vxo);
 lag = 50;
 conf_int = 0.05;
-%acfpacfnorm(u,lag,conf_int)
-A_u = [1 zeros(1,9)];
-C_u = [1 zeros(1,9)];
+acfpacfnorm(u,lag,conf_int)
+
+%% prewhitening u
+
+A_u = [1 zeros(1,25)];
+C_u = [1 zeros(1,25)];
 u_data = iddata(u);
-u_poly = idpoly(A_u,[],C_u);
-u_poly.Structure.a.Free = [1 1 1 zeros(1,7)];
-u_poly.Structure.c.Free = [1 0 0 1 zeros(1,5) 1];
+u_poly = idpoly(C_u,[],A_u);%1       5         10        15        20        25
+u_poly.Structure.a.Free = [0 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0];
+u_poly.Structure.c.Free = [0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 1 0];
 model_u = pem(u_data,u_poly);
 present(model_u)
-u_resid = resid(u_data,model_u);
-acfpacfnorm(u_resid.y,lag,conf_int)
+u_pw = resid(u_data,model_u);
+acfpacfnorm(u_pw.y,lag,conf_int)
+subplot(144)
+whitenessTest(u_pw.y)
 
+%% hardcoding from above
+A_u = [1 zeros(1,25)];
+C_u = [1 zeros(1,25)];
+u_data = iddata(u);
+u_poly = idpoly(C_u,[],A_u);%1       5         10        15        20        25
+u_poly.Structure.a.Free = [0 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0];
+u_poly.Structure.c.Free = [0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 1 0];
+model_u = pem(u_data,u_poly);
+present(model_u)
+u_pw = filter(model_u.a,model_u.c,u);
+u_pw = u_pw(30:end);
+acfpacfnorm(u_pw,lag,conf_int)
+subplot(144)
+whitenessTest(u_pw)
 
+%% prewhitening y
 
-
+y_pw = resid(y_data,model_u);
+crosscorrel(u_pw,y_pw.y,lag);
 
 
 

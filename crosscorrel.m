@@ -1,7 +1,7 @@
 function [ output_args ] = crosscorrel(u,v,lag)
 %UNTITLED3 Summary of this function goes here
 %   Detailed explanation goes here
-    subplot(144)
+    %subplot(144)
     stem(-lag:lag,crosscorr(u,v,lag));
     title('Cross correlation function'), xlabel('lag')
     hold on
