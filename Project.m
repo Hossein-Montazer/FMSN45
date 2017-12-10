@@ -49,21 +49,29 @@ acfpacfnorm(resid_gc,lag,conf_int)
 
 load tvxo94.mat
 load ptvxo94.mat
+load tstu94.mat
+load ptstu94.mat
 load tid94.mat
 %plot(tvxo94)
 %figure(2)
 %plot(ptvxo94)
 
 vxo = tvxo94(2161:3841); %model set
+stu = tstu94(2161:3841); %model set
 %vxo_all = tvxo94(2161:8760); %whole set, actually to 8881 (next year)
 plot(vxo)
+plot(stu)
 %vxo = vxo.^(1/2);
 %plot(vxo_all)
 %% looking at u
-u = vxo - mean(vxo);
+%u = vxo - mean(vxo);
+u = stu - mean(stu);
 lag = 50;
 conf_int = 0.05;
 acfpacfnorm(u,lag,conf_int)
+figure(2)
+plot(u)
+
 
 %% prewhitening u
 
@@ -71,8 +79,8 @@ A_u = [1 zeros(1,25)];
 C_u = [1 zeros(1,25)];
 u_data = iddata(u);
 u_poly = idpoly(C_u,[],A_u);%1       5         10        15        20        25
-u_poly.Structure.a.Free = [0 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0];
-u_poly.Structure.c.Free = [0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 1 0];
+u_poly.Structure.a.Free = [0 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0];%1,2
+u_poly.Structure.c.Free = [0 0 0 1 0 0 1 0 0 0 0 0 1 0 0 0 0 0 0 0 0 1 0 0 1 0];%3,21,25 3,6,12,21,24
 model_u = pem(u_data,u_poly);
 present(model_u)
 u_pw = resid(u_data,model_u);
@@ -86,7 +94,7 @@ C_u = [1 zeros(1,25)];
 u_data = iddata(u);
 u_poly = idpoly(C_u,[],A_u);%1       5         10        15        20        25
 u_poly.Structure.a.Free = [0 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0];
-u_poly.Structure.c.Free = [0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 1 0];
+u_poly.Structure.c.Free = [0 0 0 1 0 0 1 0 0 0 0 0 1 0 0 0 0 0 0 0 0 1 0 0 1 0];
 model_u = pem(u_data,u_poly);
 present(model_u)
 u_pw = filter(model_u.a,model_u.c,u);
@@ -98,7 +106,49 @@ whitenessTest(u_pw)
 %% prewhitening y
 
 y_pw = resid(y_data,model_u);
-crosscorrel(u_pw,y_pw.y,lag);
+%crosscorrel(u_pw.y,y_pw.y,lag); %d=1,s=0,r=2
+A2 = [1 0];%r=1
+B = [0];%s=0
+B = [0 B];%d=1
+Mi = idpoly(1,B,[],[],A2);
+Mi.Structure.b.Free = [zeros(1,1) 1];
+z_pw = iddata(y_pw.y,u_pw);
+Mba2 = pem(z_pw,Mi)
+present(Mba2)
+v_hat = resid(Mba2,z_pw);
+crosscorrel(v_hat.y,u_pw,lag)
+
+%% Modelling x
+
+x = y - filter(Mba2.b, Mba2.f, u);
+x = x(10:end);
+%acfpacfnorm(x,lag,conf_int)
+crosscorrel(x,u,50)
+%%
+x_data = iddata(x);
+A_x = [1 zeros(1,24)];
+C_x = [1 zeros(1,24)];
+x_poly = idpoly(A_x,[],C_x);
+x_poly.Structure.a.Free = [0 1 1 zeros(1,21) 1];
+x_poly.Structure.c.Free = [0 zeros(1,23) 1];
+model_x = pem(x_data,x_poly);
+x_resid = resid(x_data,model_x);%e
+acfpacfnorm(x_resid.y,lag,conf_int)
+
+
+
+
+%% Task C
+
+
+
+
+
+
+
+
+
+
 
 
 
