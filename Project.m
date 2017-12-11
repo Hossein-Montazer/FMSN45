@@ -127,18 +127,56 @@ subplot(144)
 crosscorrel(x,u,50)
 %%
 x_data = iddata(x);
-A_x = [1 zeros(1,24)];
-C_x = [1 zeros(1,24)];
-x_poly = idpoly(A_x,[],C_x);
-x_poly.Structure.a.Free = [0 1 1 zeros(1,21) 1];
-x_poly.Structure.c.Free = [0 zeros(1,23) 1];
+A_x = [1 zeros(1,25)];
+C_x = [1 zeros(1,25)];
+x_poly = idpoly(A_x,[],C_x);%1       5         10        15        20        25
+x_poly.Structure.a.Free = [0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1];%1,24,25
+x_poly.Structure.c.Free = [0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1];%2,24,25
 model_x = pem(x_data,x_poly);
 x_resid = resid(x_data,model_x);%e
+present(model_x)
 acfpacfnorm(x_resid.y,lag,conf_int)
 
 
+%% Full Estimation - Moment of Truth
+load utempAva_9395.dat %full zeros before 6803
+temp = utempAva_9395(:,3); %90*24=2160  70*24=1680 Yr1994 starts at 8761
+%plot(temp) %look at all data
+temp = utempAva_9395(10921:12601,3); %start of april -> mid-june, modelset
+%temp = utempAva_9395(10921:17641,3); %start of april -> end-dec, whole set
 
+load tvxo94.mat
+load ptvxo94.mat
+load tstu94.mat
+load ptstu94.mat
+load tid94.mat
+vxo = tvxo94(2161:3841); %model set
+stu = tstu94(2161:3841); %model set
+%vxo_all = tvxo94(2161:8760); %whole set, actually to 8881 (next year)
+%vxo = vxo.^(1/2);
+%plot(vxo_all)
+u = vxo - mean(vxo);
+%u = stu - mean(stu);
+y = temp - mean(temp);
 
+lag = 200;
+conf_int = 0.05;
+A1 = [1 zeros(1,25)];
+A2 = [1 0 0];
+B = [0];
+B = [0 0 0 0 0 0 B];
+C = [1 zeros(1,25)];
+Mi = idpoly(1,B,C,A1,A2);
+Mi.Structure.d.Free= [0 1 zeros(1,22) 1 1];
+Mi.Structure.b.Free= [zeros(1,6) 1];
+Mi.Structure.c.Free= [0 0 1 zeros(1,21) 1 1];
+z = iddata(y,u);
+MboxJ = pem(z,Mi);
+present(MboxJ)
+e_hat = resid(MboxJ,z);
+acfpacfnorm(e_hat.y,lag,conf_int)
+subplot(144)
+crosscorrel(u,e_hat.y,lag)
 %% Task C
 A = [eye(3)];%1,24,25
 B = [ones(5,1)];%1,2,3,22,24
