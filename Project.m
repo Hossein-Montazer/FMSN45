@@ -45,7 +45,7 @@ resid_gc = y(samp_remove:end) - yhat_gc;
 var_gc = var(resid_gc);
 acfpacfnorm(resid_gc,lag,conf_int)
 
-%% Choose external known input
+%% Choose external known input; Task B
 
 load tvxo94.mat
 load ptvxo94.mat
@@ -64,8 +64,8 @@ plot(stu)
 %vxo = vxo.^(1/2);
 %plot(vxo_all)
 %% looking at u
-%u = vxo - mean(vxo);
-u = stu - mean(stu);
+u = vxo - mean(vxo);
+%u = stu - mean(stu);
 lag = 50;
 conf_int = 0.05;
 acfpacfnorm(u,lag,conf_int)
@@ -93,8 +93,8 @@ A_u = [1 zeros(1,25)];
 C_u = [1 zeros(1,25)];
 u_data = iddata(u);
 u_poly = idpoly(C_u,[],A_u);%1       5         10        15        20        25
-u_poly.Structure.a.Free = [0 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0];
-u_poly.Structure.c.Free = [0 0 0 1 0 0 1 0 0 0 0 0 1 0 0 0 0 0 0 0 0 1 0 0 1 0];
+u_poly.Structure.a.Free = [0 1 1 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0];%1,2
+u_poly.Structure.c.Free = [0 0 0 1 0 0 0 0 0 1 0 0 1 0 0 1 0 0 0 0 0 1 0 0 1 0];%3,9,12,15,21,24
 model_u = pem(u_data,u_poly);
 present(model_u)
 u_pw = filter(model_u.a,model_u.c,u);
@@ -104,15 +104,15 @@ subplot(144)
 whitenessTest(u_pw)
 
 %% prewhitening y
-
+y_data = iddata(y);
 y_pw = resid(y_data,model_u);
-%crosscorrel(u_pw.y,y_pw.y,lag); %d=1,s=0,r=2
-A2 = [1 0];%r=1
+%crosscorrel(u_pw,y_pw.y,lag); %d=0,1,6 s=0,1 r=2
+A2 = [1 0 0];%r=2
 B = [0];%s=0
-B = [0 B];%d=1
+B = [0 0 0 0 0 0 B];%d=6
 Mi = idpoly(1,B,[],[],A2);
-Mi.Structure.b.Free = [zeros(1,1) 1];
-z_pw = iddata(y_pw.y,u_pw);
+Mi.Structure.b.Free = [zeros(1,6) 1];
+z_pw = iddata(y_pw.y(30:end),u_pw);
 Mba2 = pem(z_pw,Mi)
 present(Mba2)
 v_hat = resid(Mba2,z_pw);
@@ -122,7 +122,8 @@ crosscorrel(v_hat.y,u_pw,lag)
 
 x = y - filter(Mba2.b, Mba2.f, u);
 x = x(10:end);
-%acfpacfnorm(x,lag,conf_int)
+acfpacfnorm(x,lag,conf_int)
+subplot(144)
 crosscorrel(x,u,50)
 %%
 x_data = iddata(x);
@@ -139,8 +140,15 @@ acfpacfnorm(x_resid.y,lag,conf_int)
 
 
 %% Task C
-
-
+A = [eye(3)];%1,24,25
+B = [ones(5,1)];%1,2,3,22,24
+y = 0;
+C = [-y(k-1) -y(k-24) -y(k-25) e(k-1) e(k-2) e(k-3) e(k-22) e(k-24)];%residual=e
+sigma2_w = var(y);
+sigma2_e = 1;
+Re = [sigma2_e*eye(5)];
+Rw = sigma2_w;
+kalmanTSA(A,Re,Rw,C,y);
 
 
 

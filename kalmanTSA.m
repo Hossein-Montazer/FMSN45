@@ -1,4 +1,4 @@
-function xsave = kalmanTSA(A,Re,Rw,Ct,data)
+function xsave = kalmanTSA(A,Re,Rw,C,data)
 %UNTITLED2 Summary of this function goes here
 %   Detailed explanation goes here
 y = data;
@@ -15,12 +15,12 @@ xtt_1 = [mean(data(1:5)) 0]';
 xsave = zeros(2,N);
 for k=3:N
     %C = [-y(k-1) -y(k-2)]; %ex 8.3, 8.9, 8.12
-    C = [1 Ct(k)];
+    Ct = [1 C(k)];
     %Update
-    Ryy = C*Rxx_1*C' + Rw; %dunno
-    Kt = (Rxx_1*C')/Ryy; %kalman?
-    xtt = xtt_1 + (Kt*(y(k) - C*xtt_1)); %2x1
-    Rxx = (eye(2)-Kt*C)*Rxx_1; %2x2?
+    Ryy = Ct*Rxx_1*Ct' + Rw; %dunno
+    Kt = (Rxx_1*Ct')/Ryy; %kalman?
+    xtt = xtt_1 + (Kt*(y(k) - Ct*xtt_1)); %2x1
+    Rxx = (eye(2)-Kt*Ct)*Rxx_1; %2x2?
     
     
     %Save
