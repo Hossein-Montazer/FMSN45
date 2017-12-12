@@ -277,7 +277,7 @@ Re = [sigma2_e*eye(nparam)];
 Rw = sigma2_w;
 
 Rxx_1 = 1 * eye(nparam); %how much we trust initial values
-%xtt_1 = [zeros(nparam,1)]; %initial values to estimate, one for each parameter
+xtt_1 = [zeros(nparam,1)]; %initial values to estimate, one for each parameter
 xtt_1 = [x_result];
 xsave = zeros(nparam,N);
 for k=26:N
