@@ -169,7 +169,7 @@ C = [1 zeros(1,25)];
 Mi = idpoly(1,B,C,A1,A2);
 Mi.Structure.d.Free = [0 1 zeros(1,22) 1 1];
 Mi.Structure.b.Free = [zeros(1,6) 1];
-Mi.Structure.c.Free = [0 0 1 zeros(1,19) 1 0 1 1];
+Mi.Structure.c.Free = [0 0 1 zeros(1,19) 1 0 1 0];
 Mi.Structure.f.Free = [1 0 1];
 z = iddata(y,u);
 MboxJ = pem(z,Mi);
@@ -184,7 +184,7 @@ crosscorrel(u,e_hat.y,lag)
 A_u = MboxJ.a;
 B_u = MboxJ.b;
 C_u = MboxJ.c;
-k = 8;
+k = 1;
 [Fk_y,Gk_y] = diophantine(model_y.c,model_y.a,k); %Need to run prev code for model_y
 BF = conv(B_u,Fk_y);
 [Fk_u,Gk_u] = diophantine(BF,C_u,k);
@@ -227,18 +227,42 @@ varEstErr = var(estErr);
 
 
 %% Task C
-A = [eye(3)];%1,24,25
-B = [ones(5,1)];%1,2,3,22,24
-y = 0;
-C = [-y(k-1) -y(k-24) -y(k-25) e(k-1) e(k-2) e(k-3) e(k-22) e(k-24)];%residual=e
+A = [eye(8)];%a1,a24,a25,c1,c2,c3,c22,c24
+B = [ones(5,1)];%for external input
+N = length(y);
+nparam = length(A);%+length(B)?;
+e = zeros(1,N);
 sigma2_w = var(y);
-sigma2_e = 1;
-Re = [sigma2_e*eye(5)];
+sigma2_e = 0.0001;
+Re = [sigma2_e*eye(nparam)];
 Rw = sigma2_w;
-kalmanTSA(A,Re,Rw,C,y);
 
+Rxx_1 = 1 * eye(nparam); %how much we trust initial values
+xtt_1 = [x_result]; %initial values to estimate, one for each parameter
+xsave = zeros(nparam,N);
+for k=26:N
+    C = [-y(k-1) -y(k-24) -y(k-25) e(k-1) e(k-2) e(k-3) e(k-22) e(k-24)];%residual=e
+    %Update
+    Ryy = C*Rxx_1*C' + Rw; %dunno
+    Kt = (Rxx_1*C')/Ryy; %kalman?
+    xtt = xtt_1 + (Kt*(y(k) - C*xtt_1)); %2x1
+    Rxx = (eye(nparam)-Kt*C)*Rxx_1; %2x2?
+    
+    
+    %Save
+    xsave(:,k) = xtt; %2x1
+    e(k) = y(k)-C*xtt_1;
+    
+    %Predict
+    Rxx_1 = A*Rxx*A' + Re; %2x2
+    xtt_1 = A*xtt; %2x1 A*xtt + B*u_t
+end
 
-
+figure(1)
+plot(xsave')
+figure(2)
+acfpacfnorm(e,50,0.05)
+x_result = xsave(:,N);
 
 
 
