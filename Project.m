@@ -226,7 +226,7 @@ varEstErr = var(estErr);
 
 
 
-%% Task C
+%% Task C - Kalman without external signal
 A = [eye(8)];%a1,a24,a25,c1,c2,c3,c22,c24
 B = [ones(5,1)];%for external input
 N = length(y);
@@ -264,6 +264,45 @@ figure(2)
 acfpacfnorm(e,50,0.05)
 x_result = xsave(:,N);
 
+%% Task C - Kalman with external signal
+A = [eye(10)];%a1,a24,a25,c1,c2,c3,c22,c24,c25,b0
+%B = [ones(5,1)];%for external input
+N = length(y);
+
+nparam = length(A);%+length(B)?;
+e = zeros(1,N);
+sigma2_w = var(y)*2;
+sigma2_e = 0.0001;
+Re = [sigma2_e*eye(nparam)];
+Rw = sigma2_w;
+
+Rxx_1 = 1 * eye(nparam); %how much we trust initial values
+%xtt_1 = [zeros(nparam,1)]; %initial values to estimate, one for each parameter
+xtt_1 = [x_result];
+xsave = zeros(nparam,N);
+for k=26:N
+    C = [-y(k-1) -y(k-24) -y(k-25) e(k-1) e(k-2) e(k-3) e(k-22) e(k-24) e(k-25) u(k-6)];%residual=e
+    %Update
+    Ryy = C*Rxx_1*C' + Rw; %dunno
+    Kt = (Rxx_1*C')/Ryy; %kalman?
+    xtt = xtt_1 + (Kt*(y(k) - C*xtt_1)); %2x1
+    Rxx = (eye(nparam)-Kt*C)*Rxx_1; %2x2?
+    
+    
+    %Save
+    xsave(:,k) = xtt; %2x1
+    e(k) = y(k)-C*xtt_1;
+    
+    %Predict
+    Rxx_1 = A*Rxx*A' + Re; %2x2
+    xtt_1 = A*xtt; %2x1 A*xtt + B*u_t
+end
+
+figure(1)
+plot(xsave')
+figure(2)
+acfpacfnorm(e,50,0.05)
+x_result = xsave(:,N);
 
 
 
