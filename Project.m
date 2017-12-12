@@ -31,7 +31,7 @@ whitenessTest(resid_y.y) %3/5 great
 jbtest(resid_y.y) %not normal, instead t-distr
 
 %% Prediction
-k = 4; %steps to predict, choose 3 and use var(resid_gc)
+k = 1; %steps to predict, choose 3 and use var(resid_gc)
 [Fk_y,Gk_y] = diophantine(model_y.c,model_y.a,k);
 yhat_gc = filter(Gk_y,model_y.c,y);
 samp_remove = max(length(Gk_y),length(C));
@@ -167,9 +167,10 @@ B = [0];
 B = [0 0 0 0 0 0 B];
 C = [1 zeros(1,25)];
 Mi = idpoly(1,B,C,A1,A2);
-Mi.Structure.d.Free= [0 1 zeros(1,22) 1 1];
-Mi.Structure.b.Free= [zeros(1,6) 1];
-Mi.Structure.c.Free= [0 0 1 zeros(1,21) 1 1];
+Mi.Structure.d.Free = [0 1 zeros(1,22) 1 1];
+Mi.Structure.b.Free = [zeros(1,6) 1];
+Mi.Structure.c.Free = [0 0 1 zeros(1,19) 1 0 1 1];
+Mi.Structure.f.Free = [1 0 1];
 z = iddata(y,u);
 MboxJ = pem(z,Mi);
 present(MboxJ)
@@ -177,6 +178,54 @@ e_hat = resid(MboxJ,z);
 acfpacfnorm(e_hat.y,lag,conf_int)
 subplot(144)
 crosscorrel(u,e_hat.y,lag)
+
+
+%% Task B - Prediction
+A_u = MboxJ.a;
+B_u = MboxJ.b;
+C_u = MboxJ.c;
+k = 8;
+[Fk_y,Gk_y] = diophantine(model_y.c,model_y.a,k); %Need to run prev code for model_y
+BF = conv(B_u,Fk_y);
+[Fk_u,Gk_u] = diophantine(BF,C_u,k);
+
+uhat_k = filter(Gk_u,C_u,u); %throw away samples?
+uhat_k = uhat_k(max(length(Gk_u),length(C_u)):length(uhat_k)); %remove samples
+y1hat_k = filter(Gk_y,C_u,y); %C or Cu? throw away samples?
+y1hat_k = y1hat_k(max(length(Gk_y),length(C_u)):length(y1hat_k)); %remove samples
+yhat = y1hat_k+uhat_k;
+
+figure(1)
+hold on
+plot(y(length(y)-length(yhat):length(y)))%plot y time shifted to match with yhat
+plot(yhat)
+hold off
+%%
+%compare prediction errors
+ci_95 = 2/sqrt(length(yhat)); %conf int 95%
+estErr = y(length(y)-length(yhat)+1:length(y))-yhat; %y-yhat
+estErr_acf = acf(estErr,30);
+nbrError = sum(abs(estErr_acf)>ci_95)-1;
+p_Error = nbrError/(length(estErr_acf)-1);
+figure(2)
+ci_95 = 2/sqrt(length(y)); %conf int 95%
+acfpacfnorm(yhat,30,0.05)
+figure(3)
+acfpacfnorm(y,30,0.05)
+figure(4)
+acfpacfnorm(estErr,30,0.05)
+varEstErr = var(estErr);
+
+
+
+
+
+
+
+
+
+
+
 %% Task C
 A = [eye(3)];%1,24,25
 B = [ones(5,1)];%1,2,3,22,24
