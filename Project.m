@@ -169,7 +169,7 @@ C = [1 zeros(1,25)];
 Mi = idpoly(1,B,C,A1,A2);
 Mi.Structure.d.Free = [0 1 zeros(1,22) 1 1];
 Mi.Structure.b.Free = [zeros(1,6) 1];
-Mi.Structure.c.Free = [0 0 1 zeros(1,19) 1 0 1 0];
+Mi.Structure.c.Free = [0 0 1 zeros(1,19) 1 0 1 1];
 Mi.Structure.f.Free = [1 0 1];
 z = iddata(y,u);
 MboxJ = pem(z,Mi);
@@ -238,16 +238,21 @@ Re = [sigma2_e*eye(nparam)];
 Rw = sigma2_w;
 
 Rxx_1 = 1 * eye(nparam); %how much we trust initial values
-xtt_1 = [x_result]; %initial values to estimate, one for each parameter
+xtt_1 = [zeros(nparam,1)]; %initial values to estimate, one for each parameter
+%xtt_1 = [x_result];
 xsave = zeros(nparam,N);
 for k=26:N
     C = [-y(k-1) -y(k-24) -y(k-25) e(k-1) e(k-2) e(k-3) e(k-22) e(k-24)];%residual=e
     %Update
     Ryy = C*Rxx_1*C' + Rw; %dunno
     Kt = (Rxx_1*C')/Ryy; %kalman?
-    xtt = xtt_1 + (Kt*(y(k) - C*xtt_1)); %2x1
-    Rxx = (eye(nparam)-Kt*C)*Rxx_1; %2x2?
-    
+    if y(k)~=-mean(temp)
+        xtt = xtt_1 + (Kt*(y(k) - C*xtt_1)); %2x1
+        Rxx = (eye(nparam)-Kt*C)*Rxx_1; %2x2?
+    else
+        xtt = xtt_1;
+        Rxx = Rxx_1;
+    end
     
     %Save
     xsave(:,k) = xtt; %2x1
@@ -264,11 +269,38 @@ figure(2)
 acfpacfnorm(e,50,0.05)
 x_result = xsave(:,N);
 
+%% Prediction
+pstep = 7;
+ysave=zeros(N-pstep+1);
+for i=26:N-pstep+1
+    y_pred = zeros(25+1+pstep,1);
+    e_pred = zeros(24+1+pstep,1);
+    for l=1:26 %get init values for this loop
+        y_pred(l) = y(l-26+i);
+    end
+    for l=1:25
+        e_pred(l) = e(l-25+i);
+    end
+    
+    for j=1:pstep %1:k-1 step predictions for y_t+j
+        C_temp = [-y_pred(j-1+26) -y_pred(j-24+26) -y_pred(j-25+26) e_pred(j-1+25) e_pred(j-2+25) e_pred(j-3+25) e_pred(j-22+25) e_pred(j-24+25)];
+        y_pred(26+j) = C_temp*xsave(:,i);
+        %if j==pstep
+        %    y_pred = y_pred();
+        %end
+    end
+    C_pred = [-y_pred(26-1+pstep) -y_pred(26-24+pstep) -y_pred(26-25+pstep) e_pred(25-1+pstep) e_pred(25-2+pstep) e_pred(25-3+pstep) e_pred(25-22+pstep) e_pred(25-24+pstep)];
+    %y_pred = y_pred(pstep:end);
+    ysave(i) = C_pred*xsave(:,i);
+end
+plot(y,'b')
+hold on
+plot(ysave,'r')
+
 %% Task C - Kalman with external signal
 A = [eye(10)];%a1,a24,a25,c1,c2,c3,c22,c24,c25,b0
 %B = [ones(5,1)];%for external input
 N = length(y);
-
 nparam = length(A);%+length(B)?;
 e = zeros(1,N);
 sigma2_w = var(y)*2;
@@ -304,6 +336,37 @@ figure(2)
 acfpacfnorm(e,50,0.05)
 x_result = xsave(:,N);
 
+%% Prediction
+pstep = 7;
+ysave=zeros(N-pstep+1);
+for i=26:N-pstep+1
+    y_pred = zeros(25+1+pstep,1);
+    e_pred = zeros(24+1+pstep,1);
+    u_pred = zeros(6+1+pstep,1);
+    for l=1:26 %get init values for this loop
+        y_pred(l) = y(l-26+i);
+    end
+    for l=1:26
+        e_pred(l) = e(l-26+i);
+    end
+    for l=1:7
+        u_pred(l) = u(l-7+i);
+    end
+    
+    for j=1:pstep %1:k-1 step predictions for y_t+j
+        C_temp = [-y_pred(j-1+26) -y_pred(j-24+26) -y_pred(j-25+26) e_pred(j-1+26) e_pred(j-2+26) e_pred(j-3+26) e_pred(j-22+26) e_pred(j-24+26) e_pred(j-25+26) u_pred(j-6+7)];
+        y_pred(26+j) = C_temp*xsave(:,i);
+        %if j==pstep
+        %    y_pred = y_pred();
+        %end
+    end
+    C_pred = [-y_pred(26-1+pstep) -y_pred(26-24+pstep) -y_pred(26-25+pstep) e_pred(26-1+pstep) e_pred(26-2+pstep) e_pred(26-3+pstep) e_pred(26-22+pstep) e_pred(26-24+pstep) e_pred(26-25+pstep) u_pred(7-6+pstep)];
+    %y_pred = y_pred(pstep:end);
+    ysave(i) = C_pred*xsave(:,i);
+end
+plot(y,'b')
+hold on
+plot(ysave,'r')
 
 
 
