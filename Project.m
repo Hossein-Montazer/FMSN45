@@ -3,12 +3,15 @@ load utempAva_9395.dat %full zeros before 6803
 temp = utempAva_9395(:,3); %90*24=2160  70*24=1680 Yr1994 starts at 8761
 %plot(temp) %look at all data
 temp = utempAva_9395(10921:12601,3); %start of april -> mid-june, modelset
+temp_validation = utempAva_9395(12601:17520,3); %Validation set, 20 weeks
 %temp = utempAva_9395(10921:17641,3); %start of april -> end-dec, whole set
 plot(temp)
 
 %% remove mean
 y = temp - mean(temp);
+y_validation = temp_validation - mean(temp_validation);
 plot(y)
+plot(y_validation);
 
 %% plot acf and pacf and normplot, set lag and conf_int
 lag = 50;
@@ -31,14 +34,14 @@ whitenessTest(resid_y.y) %3/5 great
 jbtest(resid_y.y) %not normal, instead t-distr
 
 %% Prediction
-k = 1; %steps to predict, choose 3 and use var(resid_gc)
+k = 8; %steps to predict, choose 3 and use var(resid_gc)
 [Fk_y,Gk_y] = diophantine(model_y.c,model_y.a,k);
-yhat_gc = filter(Gk_y,model_y.c,y);
+yhat_gc = filter(Gk_y,model_y.c,y_validation);
 samp_remove = max(length(Gk_y),length(C));
 yhat_gc = yhat_gc(samp_remove:length(yhat_gc)); %remove samples
 plot(yhat_gc,'r')
 hold on
-plot(y(samp_remove:end),'b')
+plot(y_validation(samp_remove:end),'b')
 
 %% Check residual of prediction
 resid_gc = y(samp_remove:end) - yhat_gc;
@@ -57,6 +60,7 @@ load tid94.mat
 %plot(ptvxo94)
 
 vxo = tvxo94(2161:3841); %model set
+vxo_val = tvxo94(3841:7201); %validation set
 stu = tstu94(2161:3841); %model set
 %vxo_all = tvxo94(2161:8760); %whole set, actually to 8881 (next year)
 plot(vxo)
@@ -65,6 +69,7 @@ plot(stu)
 %plot(vxo_all)
 %% looking at u
 u = vxo - mean(vxo);
+u_val = vxo_val - mean(vxo_val);
 %u = stu - mean(stu);
 lag = 50;
 conf_int = 0.05;
@@ -106,7 +111,7 @@ whitenessTest(u_pw)
 %% prewhitening y
 y_data = iddata(y);
 y_pw = resid(y_data,model_u);
-%crosscorrel(u_pw,y_pw.y,lag); %d=0,1,6 s=0,1 r=2
+crosscorrel(u_pw,y_pw.y,lag); %d=0,1,6 s=0,1 r=2
 A2 = [1 0 0];%r=2
 B = [0];%s=0
 B = [0 0 0 0 0 0 B];%d=6
@@ -151,11 +156,13 @@ load tstu94.mat
 load ptstu94.mat
 load tid94.mat
 vxo = tvxo94(2161:3841); %model set
+vxo_val = tvxo94(3841:end); %validation set
 stu = tstu94(2161:3841); %model set
 %vxo_all = tvxo94(2161:8760); %whole set, actually to 8881 (next year)
 %vxo = vxo.^(1/2);
 %plot(vxo_all)
 u = vxo - mean(vxo);
+u_val = vxo_val - mean(vxo_val);
 %u = stu - mean(stu);
 y = temp - mean(temp);
 
@@ -165,6 +172,7 @@ A1 = [1 zeros(1,25)];
 A2 = [1 0 0];
 B = [0];
 B = [0 0 0 0 0 0 B];
+%B = [0 B];
 C = [1 zeros(1,25)];
 Mi = idpoly(1,B,C,A1,A2);
 Mi.Structure.d.Free = [0 1 zeros(1,22) 1 1];
@@ -189,16 +197,16 @@ k = 1;
 BF = conv(B_u,Fk_y);
 [Fk_u,Gk_u] = diophantine(BF,C_u,k);
 
-uhat_k = filter(Gk_u,C_u,u); %throw away samples?
+uhat_k = filter(Gk_u,C_u,u_val); %throw away samples?
 uhat_k = uhat_k(max(length(Gk_u),length(C_u)):length(uhat_k)); %remove samples
-y1hat_k = filter(Gk_y,C_u,y); %C or Cu? throw away samples?
+y1hat_k = filter(Gk_y,C_u,y_validation); %C or Cu? throw away samples?
 y1hat_k = y1hat_k(max(length(Gk_y),length(C_u)):length(y1hat_k)); %remove samples
 yhat = y1hat_k+uhat_k;
 
-figure(1)
+figure(2)
 hold on
-plot(y(length(y)-length(yhat):length(y)))%plot y time shifted to match with yhat
-plot(yhat)
+plot(y_validation(length(y_validation)-length(yhat):length(y_validation)), 'b')%plot y time shifted to match with yhat
+plot(yhat, 'r')
 hold off
 %%
 %compare prediction errors
