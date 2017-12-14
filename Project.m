@@ -11,6 +11,7 @@ plot(temp)
 y = temp - mean(temp);
 y_val = temp_val - mean(temp_val);
 plot(y)
+plot(y_validation);
 
 %% plot acf and pacf and normplot, set lag and conf_int
 lag = 50;
@@ -65,6 +66,7 @@ load tid94.mat
 %plot(ptvxo94)
 
 vxo = tvxo94(2161:3841); %model set
+vxo_val = tvxo94(3841:7201); %validation set
 stu = tstu94(2161:3841); %model set
 vxo_val = tvxo94(3842:end); %validation set
 %vxo_all = tvxo94(2161:8760); %whole set, actually to 8881 (next year)
@@ -74,6 +76,7 @@ plot(stu)
 %plot(vxo_all)
 %% looking at u
 u = vxo - mean(vxo);
+u_val = vxo_val - mean(vxo_val);
 %u = stu - mean(stu);
 lag = 50;
 conf_int = 0.05;
@@ -124,8 +127,8 @@ Mi.Structure.b.Free = [zeros(1,6) 1];
 z_pw = iddata(y_pw.y(30:end),u_pw);
 Mba2 = pem(z_pw,Mi)
 present(Mba2)
-v_hat = resid(Mba2,z_pw);
-crosscorrel(v_hat.y,u_pw,lag)
+v_hat = resid(Mba2,z_pw); % Do not expect to be white.
+crosscorrel(v_hat.y,u_pw,lag) % Should be white
 
 %% Modelling x
 
@@ -161,6 +164,7 @@ load tstu94.mat
 load ptstu94.mat
 load tid94.mat
 vxo = tvxo94(2161:3841); %model set
+vxo_val = tvxo94(3841:end); %validation set
 stu = tstu94(2161:3841); %model set
 vxo_val = tvxo94(3842:end); %validation set
 %vxo_all = tvxo94(2161:8760); %whole set, actually to 8881 (next year)
@@ -179,6 +183,7 @@ A1 = [1 zeros(1,25)];
 A2 = [1 0 0];
 B = [0];
 B = [0 0 0 0 0 0 B];
+%B = [0 B];
 C = [1 zeros(1,25)];
 Mi = idpoly(1,B,C,A1,A2);
 Mi.Structure.d.Free = [0 1 zeros(1,22) 1 1];
@@ -202,7 +207,6 @@ k = 1;
 [Fk_y,Gk_y] = diophantine(model_y.c,model_y.a,k); %Need to run prev code for model_y
 BF = conv(B_u,Fk_y);
 [Fk_u,Gk_u] = diophantine(BF,C_u,k);
-
 %uhat_k = filter(Gk_u,C_u,u); %throw away samples?
 uhat_val = filter(Gk_u,C_u,u_val);
 %uhat_k = uhat_k(max(length(Gk_u),length(C_u)):length(uhat_k)); %remove samples
