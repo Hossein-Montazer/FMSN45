@@ -263,10 +263,10 @@ xtt_1 = [zeros(nparam,1)]; %initial values to estimate, one for each parameter
 %xtt_1 = [x_result];
 xsave = zeros(nparam,N);
 pstep = 1;
-ysave=zeros(M-pstep+1);
 y_conc = [y(length(y)-pstep+1:end); y_val];
 M = length(y_conc);
 e_conc = zeros(1,M);
+ysave=zeros(M-pstep+1);
 for k=26:M%change N to length(y_val alt. y_conc)
     C = [-y_conc(k-1) -y_conc(k-24) -y_conc(k-25) e_conc(k-1) e_conc(k-2) e_conc(k-3) e_conc(k-22) e_conc(k-24)];%residual=e
     %Update
@@ -363,30 +363,63 @@ Rw = sigma2_w;
 Rxx_1 = 1 * eye(nparam); %how much we trust initial values
 xtt_1 = [zeros(nparam,1)]; %initial values to estimate, one for each parameter
 xtt_1 = [x_result];
-xsave = zeros(nparam,N);
-for k=26:N
-    C = [-y(k-1) -y(k-24) -y(k-25) e(k-1) e(k-2) e(k-3) e(k-22) e(k-24) e(k-25) u(k-6)];%residual=e
+xsave = zeros(nparam,M);
+pstep = 1;
+y_conc = [y(length(y)-pstep+1:end); y_val];
+M = length(y_conc);
+e_conc = zeros(1,M);
+u_conc = [u(length(y)-pstep+1:end); u_val]; %u_valid;%what is this supposed to be?
+ysave=zeros(M-pstep+1);
+for k=26:M
+    y_pred = zeros(25+1+pstep,1);
+    e_pred = zeros(24+1+pstep,1);
+    u_pred = zeros(6+1+pstep,1);
+    for l=1:26 %get init values for this loop
+        y_pred(l) = y_conc(l-26+k);
+    end
+    for l=1:26
+        e_pred(l) = e_conc(l-26+k);
+    end
+    for l=1:7
+        u_pred(l) = u_conc(l-7+k);
+    end
+    C = [-y_conc(k-1) -y_conc(k-24) -y_conc(k-25) e_conc(k-1) e_conc(k-2) e_conc(k-3) e_conc(k-22) e_conc(k-24) e_conc(k-25) u_conc(k-6)];%residual=e
     %Update
     Ryy = C*Rxx_1*C' + Rw; %dunno
     Kt = (Rxx_1*C')/Ryy; %kalman?
-    xtt = xtt_1 + (Kt*(y(k) - C*xtt_1)); %2x1
+    xtt = xtt_1 + (Kt*(y_conc(k) - C*xtt_1)); %2x1
     Rxx = (eye(nparam)-Kt*C)*Rxx_1; %2x2?
     
     
     %Save
     xsave(:,k) = xtt; %2x1
-    e(k) = y(k)-C*xtt_1;
+    e_conc(k) = y_conc(k)-C*xtt_1;
     
     %Predict
     Rxx_1 = A*Rxx*A' + Re; %2x2
     xtt_1 = A*xtt; %2x1 A*xtt + B*u_t
+    
+    for j=1:pstep %1:k-1 step predictions for y_t+j
+    C_temp = [-y_pred(j-1+26) -y_pred(j-24+26) -y_pred(j-25+26) e_pred(j-1+26) e_pred(j-2+26) e_pred(j-3+26) e_pred(j-22+26) e_pred(j-24+26) e_pred(j-25+26) u_pred(j-6+7)];
+    y_pred(26+j) = C_temp*xsave(:,k);
+        %if j==pstep
+        %    y_pred = y_pred();
+        %end
+    end
+    C_pred = [-y_pred(26-1+pstep) -y_pred(26-24+pstep) -y_pred(26-25+pstep) e_pred(26-1+pstep) e_pred(26-2+pstep) e_pred(26-3+pstep) e_pred(26-22+pstep) e_pred(26-24+pstep) e_pred(26-25+pstep) u_pred(7-6+pstep)];
+    %y_pred = y_pred(pstep:end);
+    ysave(k) = C_pred*xsave(:,k);
 end
 
 figure(1)
 plot(xsave')
 figure(2)
-acfpacfnorm(e,50,0.05)
-x_result = xsave(:,N);
+acfpacfnorm(e_conc,50,0.05)
+x_result = xsave(:,M);
+figure(3)
+hold on
+plot(y_val)
+plot(ysave)
 
 %% Prediction
 pstep = 7;

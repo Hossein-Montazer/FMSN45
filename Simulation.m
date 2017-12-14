@@ -99,8 +99,8 @@ x_data = iddata(x);
 A_x = [1 zeros(1,20)];
 C_x = [1 zeros(1,22)];
 x_poly = idpoly(A_x,[],C_x);
-x_poly.Structure.a.Free = [0 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]; 
-x_poly.Structure.c.Free = [0 1 1 0 0 0 0 0 0 0 0 0 0 zeros(1,9) 0];
+x_poly.Structure.a.Free = [0 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]; 
+x_poly.Structure.c.Free = [0 1 1 1 0 0 0 0 0 0 0 0 0 zeros(1,9) 0];
 model_x = pem(x_data,x_poly);
 x_resid = resid(x_data,model_x);%e
 %present(model_x)
@@ -116,9 +116,9 @@ B = [0 0];
 B = [0 0 0 0 0 0 0 0 0 B];
 C = [1 zeros(1,22)];
 Mi = idpoly(1,B,C,A1,A2);
-Mi.Structure.d.Free = [0 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0];%pacf
+Mi.Structure.d.Free = [0 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0];%pacf
 Mi.Structure.b.Free = [zeros(1,9) 0 1];
-Mi.Structure.c.Free = [0 1 1 0 0 0 0 0 0 0 0 0 0 zeros(1,9) 0];%acf
+Mi.Structure.c.Free = [0 1 1 1 0 0 0 0 0 0 0 0 0 zeros(1,9) 0];%acf
 %Mi.Structure.f.Free = [0 1 1];
 z = iddata(y(3:end),u);
 MboxJ = pem(z,Mi);
@@ -141,7 +141,7 @@ uhat_k = filter(Gk_u,C_u,u); %throw away samples?
 uhat_k = uhat_k(max(length(Gk_u),length(C_u)):length(uhat_k)); %remove samples
 y1hat_k = filter(Gk_y,C_u,y); %C or Cu? throw away samples?
 y1hat_k = y1hat_k(max(length(Gk_y),length(C_u)):length(y1hat_k)); %remove samples
-yhat = y1hat_k + uhat_k;
+yhat = y1hat_k(3:end) + uhat_k;
 yval = y1hat_val + uhat_val;
 
 figure(1)
