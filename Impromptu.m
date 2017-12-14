@@ -87,7 +87,7 @@ plot(u)
 A_u = [1 zeros(1,25)];
 C_u = [1 zeros(1,25)];
 u_data = iddata(u);
-u_poly = idpoly(A_u,[],C_u);%1       5         10        15        20        25
+u_poly = idpoly(C_u,[],A_u);%1       5         10        15        20        25
 u_poly.Structure.a.Free = [0 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0];%1,2
 u_poly.Structure.c.Free = [0 0 0 1 0 0 1 0 0 0 0 0 1 0 0 0 0 0 0 0 0 1 0 0 1 0];%3,21,25 3,6,12,21,24
 model_u = pem(u_data,u_poly);
@@ -101,7 +101,7 @@ whitenessTest(u_pw.y)
 A_u = [1 zeros(1,25)];
 C_u = [1 zeros(1,25)];
 u_data = iddata(u);
-u_poly = idpoly(A_u,[],C_u);%1       5         10        15        20        25
+u_poly = idpoly(C_u,[],A_u);%1       5         10        15        20        25
 u_poly.Structure.a.Free = [0 1 1 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0];%1,2
 u_poly.Structure.c.Free = [0 0 0 1 0 0 0 0 0 1 0 0 1 0 0 1 0 0 0 0 0 1 0 0 1 0];%3,9,12,15,21,24
 model_u = pem(u_data,u_poly);
@@ -115,7 +115,7 @@ whitenessTest(u_pw)
 %% prewhitening y
 y_data = iddata(y);
 y_pw = resid(y_data,model_u);
-crosscorrel(u_pw,y_pw.y,lag); %d=0,1,6 s=0,1 r=2
+%crosscorrel(u_pw,y_pw.y,lag); %d=0,1,6 s=0,1 r=2
 A2 = [1 0 0];%r=2
 B = [0];%s=0
 B = [0 0 0 0 0 0 B];%d=6
@@ -262,13 +262,18 @@ Rxx_1 = 1 * eye(nparam); %how much we trust initial values
 xtt_1 = [zeros(nparam,1)]; %initial values to estimate, one for each parameter
 %xtt_1 = [x_result];
 xsave = zeros(nparam,N);
-for k=26:N
-    C = [-y(k-1) -y(k-24) -y(k-25) e(k-1) e(k-2) e(k-3) e(k-22) e(k-24)];%residual=e
+pstep = 1;
+ysave=zeros(M-pstep+1);
+y_conc = [y(length(y)-pstep+1:end); y_val];
+M = length(y_conc);
+e_conc = zeros(1,M);
+for k=26:M%change N to length(y_val alt. y_conc)
+    C = [-y_conc(k-1) -y_conc(k-24) -y_conc(k-25) e_conc(k-1) e_conc(k-2) e_conc(k-3) e_conc(k-22) e_conc(k-24)];%residual=e
     %Update
     Ryy = C*Rxx_1*C' + Rw; %dunno
     Kt = (Rxx_1*C')/Ryy; %kalman?
-    if y(k)~=-mean(temp)
-        xtt = xtt_1 + (Kt*(y(k) - C*xtt_1)); %2x1
+    if y_conc(k)~=-mean(temp)
+        xtt = xtt_1 + (Kt*(y_conc(k) - C*xtt_1)); %2x1
         Rxx = (eye(nparam)-Kt*C)*Rxx_1; %2x2?
     else
         xtt = xtt_1;
@@ -277,18 +282,43 @@ for k=26:N
     
     %Save
     xsave(:,k) = xtt; %2x1
-    e(k) = y(k)-C*xtt_1;
+    e_conc(k) = y_conc(k)-C*xtt_1;
     
     %Predict
     Rxx_1 = A*Rxx*A' + Re; %2x2
     xtt_1 = A*xtt; %2x1 A*xtt + B*u_t
+    
+    %%from 'prediction'
+    y_pred = zeros(25+1+pstep,1);
+    e_pred = zeros(24+1+pstep,1);
+    for l=1:26 %get init values for this loop
+        y_pred(l) = y_conc(l-26+k);
+    end
+    for l=1:25
+        e_pred(l) = e_conc(l-25+k);
+    end
+    
+    for j=1:pstep %1:k-1 step predictions for y_t+j
+        C_temp = [-y_pred(j-1+26) -y_pred(j-24+26) -y_pred(j-25+26) e_pred(j-1+25) e_pred(j-2+25) e_pred(j-3+25) e_pred(j-22+25) e_pred(j-24+25)];
+        y_pred(26+j) = C_temp*xsave(:,k);
+        %if j==pstep
+        %    y_pred = y_pred();
+        %end
+    end
+    C_pred = [-y_pred(26-1+pstep) -y_pred(26-24+pstep) -y_pred(26-25+pstep) e_pred(25-1+pstep) e_pred(25-2+pstep) e_pred(25-3+pstep) e_pred(25-22+pstep) e_pred(25-24+pstep)];
+    %y_pred = y_pred(pstep:end);
+    ysave(k) = C_pred*xsave(:,k);
 end
 
 figure(1)
 plot(xsave')
 figure(2)
-acfpacfnorm(e,50,0.05)
+acfpacfnorm(e_conc,50,0.05)
 x_result = xsave(:,N);
+figure(3)
+hold on
+plot(ysave(:,1))
+plot(y_conc)
 
 %% Prediction
 pstep = 1;
