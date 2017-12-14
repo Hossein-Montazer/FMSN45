@@ -48,7 +48,7 @@ acfpacfnorm(resid_gc,lag,conf_int) %MA(k-1)
 %% Simulation of an external input signal
 A3 = [1 0.5];
 C3 = [1 -0.3 0.2];
-w = sqrt(2)*randn(N,1);
+w = randn(N,1);
 u = filter(C3,A3,w);
 samp_remove = max(length(A3),length(C3));
 u = u(samp_remove:end);
@@ -80,7 +80,7 @@ B = [0 0];%s=1
 B = [0 0 0 0 0 0 B];%d=6
 Mi = idpoly(1,B,[],[],A2);
 Mi.Structure.b.Free = [zeros(1,6) 1 1];
-z_pw = iddata(y_pw.y(3:end),u_pw);
+z_pw = iddata(y_pw.y(samp_remove+2:end),u_pw);
 Mba2 = pem(z_pw,Mi);
 %present(Mba2)
 v_hat = resid(Mba2,z_pw); % Do not expect to be white.
@@ -88,7 +88,7 @@ crosscorrel(v_hat.y,u_pw,lag) % Should be white.
 
 %% Modelling x
 
-x = y - filter(Mba2.b, Mba2.f, u);
+x = y(3:end) - filter(Mba2.b, Mba2.f, u);
 x = x(10:end);
 acfpacfnorm(x,lag,conf_int)
 subplot(144)
@@ -128,3 +128,24 @@ acfpacfnorm(e_hat.y,lag,conf_int)
 subplot(144)
 crosscorrel(u,e_hat.y,lag)
 
+
+%% Task B - Prediction
+A_u = MboxJ.a;
+B_u = MboxJ.b;
+C_u = MboxJ.c;
+k = 1;
+[Fk_y,Gk_y] = diophantine(model_y.c,model_y.a,k); %Need to run prev code for model_y
+BF = conv(B_u,Fk_y);
+[Fk_u,Gk_u] = diophantine(BF,C_u,k);
+uhat_k = filter(Gk_u,C_u,u); %throw away samples?
+uhat_k = uhat_k(max(length(Gk_u),length(C_u)):length(uhat_k)); %remove samples
+y1hat_k = filter(Gk_y,C_u,y); %C or Cu? throw away samples?
+y1hat_k = y1hat_k(max(length(Gk_y),length(C_u)):length(y1hat_k)); %remove samples
+yhat = y1hat_k + uhat_k;
+yval = y1hat_val + uhat_val;
+
+figure(1)
+hold on
+plot(y(length(y)-length(yhat):length(y)))%plot y time shifted to match with yhat
+plot(yhat)
+hold off
