@@ -120,8 +120,8 @@ Mi.Structure.b.Free = [zeros(1,6) 1];
 z_pw = iddata(y_pw.y(30:end),u_pw);
 Mba2 = pem(z_pw,Mi)
 present(Mba2)
-v_hat = resid(Mba2,z_pw);
-crosscorrel(v_hat.y,u_pw,lag)
+v_hat = resid(Mba2,z_pw); % Do not expect to be white.
+crosscorrel(v_hat.y,u_pw,lag) % Should be white
 
 %% Modelling x
 
