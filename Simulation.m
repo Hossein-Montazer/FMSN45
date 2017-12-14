@@ -75,12 +75,12 @@ acfpacfnorm(u_pw,lag,conf_int);
 y_data = iddata(y);
 y_pw = resid(y_data,model_u);
 %crosscorrel(u_pw,y_pw.y,lag); %d=0,1,6 s=0,1 r=2
-A2 = [1 0];%r=2
-B = [0 0];%s=1
-B = [0 0 0 0 0 0 B];%d=6
+A2 = [1 0 0];%r=2
+B = [0];%s=1
+B = [0 0 0 0 0 0 0 0 0 0 B];%d=6
 Mi = idpoly(1,B,[],[],A2);
-Mi.Structure.b.Free = [zeros(1,6) 1 1];
-z_pw = iddata(y_pw.y(3:end),u_pw);
+Mi.Structure.b.Free = [zeros(1,10) 1];
+z_pw = iddata(y_pw.y(5:end),u_pw);
 Mba2 = pem(z_pw,Mi);
 %present(Mba2)
 v_hat = resid(Mba2,z_pw); % Do not expect to be white.
@@ -88,7 +88,7 @@ crosscorrel(v_hat.y,u_pw,lag) % Should be white.
 
 %% Modelling x
 
-x = y - filter(Mba2.b, Mba2.f, u);
+x = y(3:end) - filter(Mba2.b, Mba2.f, u);
 x = x(10:end);
 acfpacfnorm(x,lag,conf_int)
 subplot(144)
@@ -99,8 +99,8 @@ x_data = iddata(x);
 A_x = [1 zeros(1,20)];
 C_x = [1 zeros(1,22)];
 x_poly = idpoly(A_x,[],C_x);
-x_poly.Structure.a.Free = [0 1 1 1 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 1 1]; 
-x_poly.Structure.c.Free = [0 zeros(1,21) 1];
+x_poly.Structure.a.Free = [0 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]; 
+x_poly.Structure.c.Free = [0 1 1 0 0 0 0 0 0 0 0 0 0 zeros(1,9) 0];
 model_x = pem(x_data,x_poly);
 x_resid = resid(x_data,model_x);%e
 %present(model_x)
@@ -113,14 +113,14 @@ conf_int = 0.05;
 A1 = [1 zeros(1,20)];
 A2 = [1 0 0];
 B = [0 0];
-B = [0 0 0 0 0 0 B];
+B = [0 0 0 0 0 0 0 0 0 B];
 C = [1 zeros(1,22)];
 Mi = idpoly(1,B,C,A1,A2);
-Mi.Structure.d.Free = [0 1 1 1 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 1 1];
-Mi.Structure.b.Free = [zeros(1,6) 0 1];
-Mi.Structure.c.Free = [0 zeros(1,21) 1];
+Mi.Structure.d.Free = [0 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0];%pacf
+Mi.Structure.b.Free = [zeros(1,9) 0 1];
+Mi.Structure.c.Free = [0 1 1 0 0 0 0 0 0 0 0 0 0 zeros(1,9) 0];%acf
 %Mi.Structure.f.Free = [0 1 1];
-z = iddata(y,u);
+z = iddata(y(3:end),u);
 MboxJ = pem(z,Mi);
 %present(MboxJ)
 e_hat = resid(MboxJ,z);
